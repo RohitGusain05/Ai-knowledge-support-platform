@@ -17,6 +17,12 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+ai-service:
+  url: ${AI_SERVICE_URL:http://localhost:8000}
+
+processing:
+  worker-delay-ms: ${PROCESSING_WORKER_DELAY_MS:1000}
+
 management:
   endpoints:
     web:
