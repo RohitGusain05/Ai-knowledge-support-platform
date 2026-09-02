@@ -6,4 +6,5 @@ import java.util.UUID;
 
 public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UUID> {
     long countByDocumentId(UUID documentId);
+    void deleteAllByDocumentId(UUID documentId);
 }
