@@ -4,6 +4,7 @@ import com.rohitgusain.knowledge.entity.Document;
 import com.rohitgusain.knowledge.entity.DocumentProcessingJob;
 import com.rohitgusain.knowledge.entity.ProcessingJobStatus;
 import com.rohitgusain.knowledge.repository.DocumentProcessingJobRepository;
+import com.rohitgusain.knowledge.repository.DocumentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,30 +13,39 @@ import java.util.UUID;
 @Service
 public class DocumentProcessingJobService {
     private final DocumentProcessingJobRepository repository;
+    private final DocumentRepository documentRepository;
 
-    public DocumentProcessingJobService(DocumentProcessingJobRepository repository) {
+    public DocumentProcessingJobService(DocumentProcessingJobRepository repository, DocumentRepository documentRepository) {
         this.repository = repository;
+        this.documentRepository = documentRepository;
     }
 
     @Transactional
-    public void enqueue(Document document) {
-        repository.save(new DocumentProcessingJob(document));
-    }
+    public void enqueue(Document document) { repository.save(new DocumentProcessingJob(document)); }
 
     @Transactional
     public DocumentProcessingJob claimNext() {
         return repository.findNextPending(ProcessingJobStatus.PENDING)
-                .map(job -> { job.start(); return job; })
-                .orElse(null);
+                .map(job -> { job.start(); return job; }).orElse(null);
     }
 
     @Transactional
     public void complete(UUID jobId) {
-        repository.findById(jobId).ifPresent(job -> job.complete());
+        repository.findById(jobId).ifPresent(job -> {
+            job.complete();
+            job.getDocument().markCompleted();
+            documentRepository.save(job.getDocument());
+        });
     }
 
     @Transactional
     public void fail(UUID jobId, String error) {
-        repository.findById(jobId).ifPresent(job -> job.fail(error));
+        repository.findById(jobId).ifPresent(job -> {
+            job.failOrRetry(error);
+            if (job.getStatus() == ProcessingJobStatus.FAILED) {
+                job.getDocument().markFailed();
+                documentRepository.save(job.getDocument());
+            }
+        });
     }
 }
