@@ -1,24 +1,12 @@
 # AI Knowledge & Support Platform
 
-An AI-powered knowledge and support platform that enables users to upload documents, search knowledge semantically, and receive context-aware answers with source citations.
+An AI-powered knowledge and support platform that enables users to upload documents, process them asynchronously, search knowledge semantically, and receive context-aware answers with source citations.
 
-## Vision
+## Architecture
 
-Build a production-style full-stack application that combines modern software engineering with retrieval-augmented generation (RAG).
+React + TypeScript → Spring Boot → PostgreSQL / pgvector → Python FastAPI AI Service → Embeddings → Vector Retrieval → LLM
 
-Users will be able to:
-- Create private knowledge spaces
-- Upload and manage documents
-- Search knowledge semantically
-- Ask questions about their documents
-- Receive grounded AI answers
-- Inspect the sources used to generate each answer
-
-## Planned Architecture
-
-React + TypeScript → Spring Boot → PostgreSQL / Redis → Python AI Service → Embeddings / Vector Search → LLM
-
-The application will begin as a modular system and introduce asynchronous processing and additional infrastructure only when the feature requires it.
+Document ingestion is asynchronous: uploads create persistent processing jobs, a scheduled worker claims jobs with database row locking, extracts text, chunks it, generates embeddings, stores vectors in pgvector, and retries failures up to three attempts.
 
 ## Technology Stack
 
@@ -27,69 +15,75 @@ The application will begin as a modular system and introduce asynchronous proces
 - TypeScript
 
 ### Backend
-- Java
-- Spring Boot
-- Spring Data JPA
-- Hibernate
+- Java 21
+- Spring Boot 3.5
+- Spring Data JPA / Hibernate
 - REST APIs
+- JWT + BCrypt authentication
+- Apache PDFBox
+- Scheduled background workers
 
 ### Data & Infrastructure
 - PostgreSQL
-- pgvector
-- Redis
-- Docker
+- pgvector with HNSW cosine index
+- Redis (infrastructure ready for caching/queue features)
+- Docker / Docker Compose
 - GitHub Actions
-- AWS
 
 ### AI Service
-- Python
+- Python 3.12
 - FastAPI
-- Embeddings
-- Retrieval-Augmented Generation (RAG)
-- LLM API
+- Sentence Transformers
+- `all-MiniLM-L6-v2` embeddings (384 dimensions)
 
-### Testing
-- JUnit
-- Mockito
-- Integration testing
+## Implemented
 
-## Planned Features
+- User registration and JWT login
+- Private knowledge spaces
+- PDF, TXT and Markdown uploads
+- Secure document storage with filename/path validation
+- Persistent document processing jobs
+- Pessimistic locking for worker job claiming
+- Bounded automatic retries
+- PDF/text extraction
+- Overlapping text chunking
+- Batch embedding generation through the FastAPI service
+- PostgreSQL pgvector persistence
+- HNSW vector index foundation
+- Dockerized PostgreSQL, Redis, backend and AI service
+- GitHub Actions Java 21 CI
 
-1. Authentication and authorization
-2. Knowledge spaces and access control
-3. Document upload and processing
-4. Text extraction and chunking
-5. Embedding generation and vector storage
-6. Semantic retrieval
-7. AI question answering
-8. Source citations
-9. Conversation history
-10. Redis caching
-11. Background processing
-12. Automated testing
-13. Dockerized development
-14. CI/CD
-15. AWS deployment
+## Planned
+
+1. Semantic similarity retrieval
+2. RAG question answering
+3. Source citations in answers
+4. Conversation history
+5. Redis caching
+6. React dashboard and document UI
+7. LLM provider integration
+8. Integration tests with Testcontainers
+9. AWS deployment and observability
+
+## Run locally
+
+```bash
+docker compose up --build
+```
+
+Backend: `http://localhost:8080`
+
+AI service: `http://localhost:8000`
+
+Health check: `http://localhost:8080/actuator/health`
 
 ## Engineering Goals
 
-This project is intentionally designed to demonstrate more than CRUD development:
-
-- Clean architecture
-- Secure API design
-- Database design and indexing
-- Asynchronous processing
-- Caching
-- AI integration
-- Testing
-- Containerization
-- CI/CD
-- Cloud deployment
-- Production-oriented error handling and observability
+This project is designed to demonstrate production-oriented engineering beyond CRUD: secure API design, relational data modeling, asynchronous processing, database locking, vector search infrastructure, AI service integration, testing, containerization, CI/CD, and cloud-ready architecture.
 
 ## Status
 
-🚧 In development
+🚧 In development — ingestion and embedding pipeline implemented; semantic retrieval and RAG answering are next.
 
 ## License
 
