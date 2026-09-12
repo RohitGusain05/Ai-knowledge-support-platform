@@ -38,6 +38,7 @@ services:
       DB_PASSWORD: postgres
       AI_SERVICE_URL: http://ai-service:8000
       DOCUMENT_STORAGE_PATH: /app/storage/documents
+      APP_CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
     ports: ["8080:8080"]
     volumes: ["document_storage:/app/storage/documents"]
     depends_on:
@@ -45,6 +46,13 @@ services:
         condition: service_healthy
       ai-service:
         condition: service_started
+
+  frontend:
+    build: ./frontend
+    container_name: knowledge-support-frontend
+    ports: ["5173:80"]
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
