@@ -1,7 +1,6 @@
 package com.rohitgusain.knowledge.service;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,7 +18,6 @@ public class QuestionAnswerService {
         this.answerGenerationClient = answerGenerationClient;
     }
 
-    @Transactional(readOnly = true)
     public AnswerResult answer(UUID userId, UUID spaceId, String question, int limit) {
         knowledgeSpaceService.findOwnedSpace(userId, spaceId);
         List<VectorStoreService.RetrievedChunk> sources = ragService.retrieve(spaceId, question, limit);
