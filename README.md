@@ -1,12 +1,22 @@
 # AI Knowledge & Support Platform
 
-An AI-powered knowledge and support platform that enables users to upload documents, process them asynchronously, search knowledge semantically, and receive context-aware answers with source citations.
+An AI-powered knowledge and support platform that lets users upload private documents, process them asynchronously, retrieve relevant knowledge with semantic search, and receive grounded answers with source citations.
 
 ## Architecture
 
-React + TypeScript → Spring Boot → PostgreSQL / pgvector → Python FastAPI AI Service → Embeddings → Vector Retrieval → LLM
+React + TypeScript → Spring Boot → PostgreSQL / pgvector → Python FastAPI AI Service → Embeddings → Vector Retrieval → Local LLM
 
-Document ingestion is asynchronous: uploads create persistent processing jobs, a scheduled worker claims jobs with database row locking, extracts text, chunks it, generates embeddings, stores vectors in pgvector, and retries failures up to three attempts.
+### RAG flow
+
+1. User uploads a PDF, TXT, or Markdown document.
+2. A persistent processing job is created.
+3. A background worker extracts and chunks the document.
+4. FastAPI generates normalized 384-dimensional embeddings.
+5. Embeddings are stored in PostgreSQL `pgvector` with an HNSW cosine index.
+6. A question is embedded using the same model.
+7. pgvector returns the most similar chunks from the user's knowledge space.
+8. The retrieved context is sent to the LLM with an instruction to answer only from that context.
+9. The API returns the generated answer plus the retrieved source chunks and similarity scores.
 
 ## Technology Stack
 
@@ -26,7 +36,7 @@ Document ingestion is asynchronous: uploads create persistent processing jobs, a
 ### Data & Infrastructure
 - PostgreSQL
 - pgvector with HNSW cosine index
-- Redis (infrastructure ready for caching/queue features)
+- Redis
 - Docker / Docker Compose
 - GitHub Actions
 
@@ -35,40 +45,60 @@ Document ingestion is asynchronous: uploads create persistent processing jobs, a
 - FastAPI
 - Sentence Transformers
 - `all-MiniLM-L6-v2` embeddings (384 dimensions)
+- Ollama-compatible local LLM generation
 
 ## Implemented
 
 - User registration and JWT login
-- Private knowledge spaces
+- Private knowledge spaces and ownership checks
 - PDF, TXT and Markdown uploads
-- Secure document storage with filename/path validation
+- Secure document storage and path validation
 - Persistent document processing jobs
-- Pessimistic locking for worker job claiming
-- Bounded automatic retries
-- PDF/text extraction
-- Overlapping text chunking
-- Batch embedding generation through the FastAPI service
-- PostgreSQL pgvector persistence
-- HNSW vector index foundation
+- Pessimistic locking for concurrent workers
+- Automatic retry with bounded attempts
+- PDF/text extraction and overlapping chunking
+- Batch embedding generation
+- PostgreSQL pgvector persistence and similarity retrieval
+- Grounded RAG question answering
+- Retrieved source metadata and similarity scores
 - Dockerized PostgreSQL, Redis, backend and AI service
 - GitHub Actions Java 21 CI
 
-## Planned
+## API examples
 
-1. Semantic similarity retrieval
-2. RAG question answering
-3. Source citations in answers
-4. Conversation history
-5. Redis caching
-6. React dashboard and document UI
-7. LLM provider integration
-8. Integration tests with Testcontainers
-9. AWS deployment and observability
+After authentication, semantic retrieval is available at:
+
+`POST /api/v1/knowledge-spaces/{spaceId}/search`
+
+Question answering is available at:
+
+`POST /api/v1/knowledge-spaces/{spaceId}/questions`
+
+Example request:
+
+```json
+{
+  "question": "What is the refund policy?",
+  "limit": 5
+}
+```
 
 ## Run locally
 
 ```bash
 docker compose up --build
+```
+
+For local LLM generation, install Ollama on the host and pull the configured model:
+
+```bash
+ollama pull llama3.2:3b
+```
+
+You can override the model with environment variables:
+
+```bash
+LLM_BASE_URL=http://host.docker.internal:11434 LLM_MODEL=llama3.2:3b docker compose up --build
 ```
 
 Backend: `http://localhost:8080`
@@ -79,11 +109,11 @@ Health check: `http://localhost:8080/actuator/health`
 
 ## Engineering Goals
 
-This project is designed to demonstrate production-oriented engineering beyond CRUD: secure API design, relational data modeling, asynchronous processing, database locking, vector search infrastructure, AI service integration, testing, containerization, CI/CD, and cloud-ready architecture.
+This project demonstrates production-oriented engineering beyond CRUD: secure API design, relational data modeling, asynchronous processing, database locking, vector search, RAG orchestration, AI service integration, testing, containerization, CI/CD, and cloud-ready architecture.
 
 ## Status
 
-🚧 In development — ingestion and embedding pipeline implemented; semantic retrieval and RAG answering are next.
+🚧 In development — document ingestion, embeddings, semantic retrieval, and grounded RAG answering are implemented. Frontend experience, conversation history, caching, integration tests, and cloud deployment remain next.
 
 ## License
 
